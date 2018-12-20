@@ -23,7 +23,7 @@ void setup() {
 		Serial.println(".");
 		delay(100);
 	}
-	Serial.print("Connected to");
+	Serial.print("Connected to: ");
 	Serial.println(WiFi.SSID());
 
 	delay(1000);
