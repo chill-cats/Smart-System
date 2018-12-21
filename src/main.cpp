@@ -4,14 +4,23 @@
 #include <WiFi.h>
 #include <WiFiMulti.h>
 #include <ESPmDNS.h>
+#include <SPI.h>
+#include <MFRC522.h>
 
-void taskOne(void* taskOne);
+void rfidCheck(void* taskOne);
 void taskTwo(void* taskTwo);
 
-WiFiMulti wifiMulti;
+#define SS_PIN 5
+#define RST_PIN 22
 
+WiFiMulti wifiMulti;
+MFRC522 mfrc522(SS_PIN, RST_PIN);
+QueueHandle_t queue;
 void setup() {
 	Serial.begin(112500);
+	SPI.begin();
+	mfrc522.PCD_Init();
+
 	pinMode(2, OUTPUT);
 
 	wifiMulti.addAP("DD_WRT", "NguyenThiHongTho");
@@ -28,10 +37,10 @@ void setup() {
 
 	delay(1000);
 
+	queue = xQueueCreate(10, sizeof(long));
 
-
-	xTaskCreate(taskOne, /* Task function. */
-				"TaskOne", /* String with name of task. */
+	xTaskCreate(rfidCheck, /* Task function. */
+				"rfidCheckingTask", /* String with name of task. */
 				10000, /* Stack size in bytes. */
 				NULL, /* Parameter passed as input of the task */
 				1, /* Priority of the task. */
@@ -49,13 +58,8 @@ void setup() {
 void loop() {
 }
 
-void taskOne(void * parameter) {
-	while (true) {
-		digitalWrite(2, HIGH);
-		vTaskDelay(1000);
-		digitalWrite(2, LOW);
-		vTaskDelay(1000);
-	}
+void rfidCheck(void * parameter) {
+
 }
 
 void taskTwo(void * parameter) {
