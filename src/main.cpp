@@ -13,11 +13,14 @@
 #define LIGHT_OFF 2
 #define OLD_HTTP 0
 #define NEW_HTTP 1
+#define FROM_SEND 0
+#define FROM_ANY 1
 
 void rfidCheck(void* pvParameters);
 void taskTwo(void* taskTwo);
 void sendHTTPRequest(int mode);
 void sendHTTPRequest_OLD(int mode);
+String readHTTPResponse(int mode);
 
 String httpRequestBuilder(int mode);
 String UID = "";
@@ -39,6 +42,7 @@ void setup() {
 	mfrc522.PCD_Init();
 
 	pinMode(2, OUTPUT);
+	digitalWrite(2, HIGH);
 
 	wifiMulti.addAP("DD_WRT", "NguyenThiHongTho");
 	wifiMulti.addAP("NguyenDeptrai", "12345678");
@@ -156,14 +160,39 @@ void sendHTTPRequest(int mode) {
 	http.end();
 }
 void sendHTTPRequest_OLD(int mode) {
+	String line;
 	if (!client.connect(HOST, PORT)) {
 		Serial.println("Connect to host failed");
 	}
 	client.print(httpRequestBuilder(mode, OLD_HTTP));
-	vTaskDelay(100);
-	while (client.available()) {
-		String line = client.readStringUntil('\r');
-		Serial.print(line);
-	}
 	Serial.println();
+	if (readHTTPResponse(FROM_SEND).indexOf("OK") != -1) {
+		digitalWrite(2, HIGH);
+	} else {
+		digitalWrite(2, LOW);
+	}
+}
+String readHTTPResponse(int mode) {
+	String httpResponse = "";
+	if (mode == FROM_SEND) {
+		while (client.available() == 0) {
+			unsigned long timeOut = millis();
+			if (millis() - timeOut > 5000) {
+				Serial.println("NO HTTP RESPONSE RECIEVED ON TIME");
+			}
+		}
+		while (client.available()) {
+			String line = client.readStringUntil('\r');
+			Serial.print(line);
+			httpResponse = line;
+		}
+	}
+	if (mode == FROM_ANY) {
+		while (client.available()) {
+			String line = client.readStringUntil('\r');
+			Serial.println(line);
+			httpResponse = line;
+		}
+	}
+	return httpResponse;
 }
