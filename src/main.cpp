@@ -21,6 +21,9 @@ void taskTwo(void* taskTwo);
 void sendHTTPRequest(int mode);
 void sendHTTPRequest_OLD(int mode);
 String readHTTPResponse(int mode);
+void HTTPResponseHandler(String httpResponse, int mode);
+void blockRFID(int ms);
+void blockTask(void *pvParameters);
 
 String httpRequestBuilder(int mode);
 String UID = "";
@@ -30,6 +33,7 @@ String className = "11T";
 const int resetPin = 22; // Reset pin
 const int ssPin = 21; // Slave select pin
 byte rfUID[4];
+int FLAG_ISBLOCKED = 0;
 
 WiFiMulti wifiMulti;
 MFRC522 mfrc522(ssPin, resetPin); // Create instance
@@ -82,17 +86,19 @@ void loop() {
 void rfidCheck(void *pvParameters) {
 	while (true) {
 		vTaskDelay(10);
-		if (mfrc522.PICC_IsNewCardPresent()) {
-			if (mfrc522.PICC_ReadCardSerial()) {
-				mfrc522.PICC_DumpToSerial(&mfrc522.uid);
-				for (int i = 0; i < 4; i++) {
-					rfUID[i] = mfrc522.uid.uidByte[i];
-					UID = UID + String(rfUID[i]);
+		if (FLAG_ISBLOCKED == 0) {
+			if (mfrc522.PICC_IsNewCardPresent()) {
+				if (mfrc522.PICC_ReadCardSerial()) {
+					mfrc522.PICC_DumpToSerial(&mfrc522.uid);
+					for (int i = 0; i < 4; i++) {
+						rfUID[i] = mfrc522.uid.uidByte[i];
+						UID = UID + String(rfUID[i]);
+					}
+					Serial.println(UID);
+					sendHTTPRequest_OLD(RFID_SCAN);
+					mfrc522.PICC_HaltA();
+					mfrc522.PCD_StopCrypto1();
 				}
-				Serial.println(UID);
-				sendHTTPRequest_OLD(RFID_SCAN);
-				mfrc522.PICC_HaltA();
-				mfrc522.PCD_StopCrypto1();
 			}
 		}
 	}
@@ -144,12 +150,12 @@ String httpRequestBuilder(int mode, int ver) {
 					+ " HTTP/1.1\r\n" + "Host: " + HOST + "\r\n"
 					+ "Connection: close\r\n\r\n";
 		}
+		break;
 	}
 	Serial.println(httpRequest);
 	return httpRequest;
 }
 void sendHTTPRequest(int mode) {
-
 	http.begin(httpRequestBuilder(mode));
 	int http_code = http.GET();
 	if (http_code > 0) {
@@ -166,11 +172,8 @@ void sendHTTPRequest_OLD(int mode) {
 	}
 	client.print(httpRequestBuilder(mode, OLD_HTTP));
 	Serial.println();
-	if (readHTTPResponse(FROM_SEND).indexOf("OK") != -1) {
-		digitalWrite(2, HIGH);
-	} else {
-		digitalWrite(2, LOW);
-	}
+	HTTPResponseHandler(readHTTPResponse(FROM_SEND), FROM_SEND);
+
 }
 String readHTTPResponse(int mode) {
 	String httpResponse = "";
@@ -195,4 +198,30 @@ String readHTTPResponse(int mode) {
 		}
 	}
 	return httpResponse;
+}
+void HTTPResponseHandler(String httpResponse, int mode) {
+	switch (mode) {
+	case FROM_SEND:
+		if (httpResponse.indexOf("OK") != -1) {
+
+			return;
+		}
+		if (httpResponse.indexOf("ERROR") != -1) {
+			blockRFID(30000);
+			return;
+		}
+		break;
+	case FROM_ANY:
+		break;
+	}
+}
+void blockRFID(int ms) {
+	xTaskCreate(blockTask, "blockRFIDtask", 1000, (void *)ms, 1, NULL);
+}
+void blockTask(void *pvParameters) {
+	int delayTime = (int) pvParameters;
+	FLAG_ISBLOCKED = 1;
+	vTaskDelay(delayTime);
+	FLAG_ISBLOCKED = 0;
+	vTaskDelete(NULL);
 }
