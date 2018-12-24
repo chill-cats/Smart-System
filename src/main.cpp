@@ -1,3 +1,8 @@
+/**
+ * 	main.cpp
+ * 	author: Le Nguyen Hoang Nhan
+ *
+ */
 #include <Arduino.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
