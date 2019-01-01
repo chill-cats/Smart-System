@@ -14,10 +14,11 @@
 #include <SPI.h>
 #include <MFRC522.h>
 #include <HTTPClient.h>
+// Define value
 
-//Function declaration
+// Function declaration
 void RFIDCheckTask(void *pvParameters);
-void sendHTTPRequest();
+void sendHTTPRequest(String UID);
 void blockRFIDReader(int blockTime);
 void blockRFIDTask(void *pvParameters);
 void setup();
@@ -38,7 +39,43 @@ const int MFRC522SsPin = 21;
 // Normal Variable Declaration
 byte rfUID[4];
 int FLAG_ISBLOCKED = 0;
+String card_UID = "";
 
 WiFiMulti wifiMulti;
 MFRC522 mfrc522(MFRC522SsPin, MFRC522RstPin);
 WiFiClient wifiClient;
+
+void setup() {
+	// setup communication
+	Serial.begin(115200);
+	SPI.begin();
+
+	// prepare MRFC522
+	mfrc522.PCD_Init();
+	mfrc522.PCD_DumpVersionToSerial();
+
+	// connect to WiFi using WiFiMulti function
+	wifiMulti.addAP("DD_WRT", "NguyenThiHongTho");
+	wifiMulti.addAP("Hello_World", "NguyenThiHongTho");
+	while (wifiMulti.run() != WL_CONNECTED) {
+		Serial.println(".");
+		delay(100);
+	}
+	Serial.print("Connected to");
+	Serial.println(WiFi.SSID());
+
+	// freeRTOS time!!
+	xTaskCreate(RFIDCheckTask, /* Task main function */
+	"RFIDCheckTask", /* Name of Task */
+	30000, /* Task size in bytes */
+	NULL, /* Parameter passed as input of the task */
+	3, /* Priority of the task */
+	NULL); /* Task handle */
+}
+void loop() {
+} // end loop
+void RFIDCheckTask(void *pvParameters) {
+	while (1) {
+
+	}
+} //end RFIDCheckTask
