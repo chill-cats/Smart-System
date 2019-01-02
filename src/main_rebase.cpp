@@ -5,18 +5,18 @@
  *      Author: nhan
  */
 // Include libraries to use
-#include <Arduino.h>
-#include <freertos/FreeRTOS.h>
-#include <freertos/task.h>
-#include <WiFi.h>
-#include <WiFiMulti.h>
-#include <ESPmDNS.h>
-#include <SPI.h>
-#include <MFRC522.h>
-#include <HTTPClient.h>
+#include <Arduino.h>              // core library for everything
+#include <freertos/FreeRTOS.h>    // freeRTOS core library
+#include <freertos/task.h>        // freeRTOS library for task managing
+#include <WiFi.h>                 // core Library for establish WiFi connection
+#include <WiFiMulti.h>            // library for easy WiFi usage
+#include <ESPmDNS.h>              // library to create multicast DNS (LAN ONLY)
+#include <SPI.h>                  // SPI library to communicate with MFRC522
+#include <MFRC522.h>              // MFRC522 Core Library
+#include <HTTPClient.h>           // Library to implement HTTP Protocol
 // Define value
-#define RFID_SCAN 0
-#define PEOPLE_PRESENT 1
+#define RFID_SCAN 0               // Define Value for sendHTTPRequest
+#define PEOPLE_PRESENT 1        
 #define PEOPLE_NOT_PRESENT 2
 // Function declaration
 void RFIDCheckTask(void *pvParameters);
@@ -31,20 +31,20 @@ String readHTTPResponse(int delayTime);
 String HTTPRequestBuilder(String UID, int mode);
 
 // Constant Variable Declaration
-const char *serverIP = "112.197.235.17";
-const String className = "11T";
-const String UUID = "0e47f9cf-ac45-46a8-baeb-c5ec048ceec3";
-const int serverPORT = 2705;
-const int MFRC522RstPin = 13;
-const int MFRC522SsPin = 12;
+const char *serverIP = "112.197.235.17";                    // CAUTION, need changing
+const String className = "11T";                             // change base on class
+const String UUID = "0e47f9cf-ac45-46a8-baeb-c5ec048ceec3"; // Generate a new one at https://www.uuidgenerator.net/
+const int serverPORT = 2705;                                // Service server port
+const int MFRC522RstPin = 13;                               // Connect to MFRC522 SDA Pin
+const int MFRC522SsPin = 12;                                // Connect to MFRC522 RST Pin
 
 // Normal Variable Declaration
-byte rfUID[4];
-int FLAG_ISBLOCKED = 0;
+byte rfUID[4];                                 // Array for 4 byte RFID UID
+int FLAG_ISBLOCKED = 0;                        // FLAG for block function
 
-WiFiMulti wifiMulti;
-MFRC522 mfrc522(MFRC522SsPin, MFRC522RstPin);
-WiFiClient wifiClient;
+WiFiMulti wifiMulti;                           // Instance of WiFiMulti class, handle all WiFiMulti related thing
+MFRC522 mfrc522(MFRC522SsPin, MFRC522RstPin);  // Instance of MFRC522 class, handle all RFID related thing
+WiFiClient wifiClient;                         // WifiClient for HTTP sending and response
 
 void setup() {
 	// setup communication
